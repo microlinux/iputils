@@ -312,9 +312,9 @@ extern ping_func_set_st ping4_func_set;
 extern int pinger(ping_func_set_st *fset, socket_st *sock);
 extern void sock_setbufs(socket_st*, int alloc);
 extern void setup(socket_st *);
-extern void main_loop(ping_func_set_st *fset, socket_st*, __u8 *buf, int buflen) __attribute__((noreturn));
-extern void finish(void) __attribute__((noreturn));
-extern void status(void);
+extern void main_loop(ping_func_set_st *fset, socket_st*, __u8 *buf, int buflen, char *destip) __attribute__((noreturn));
+extern void finish(char *destip) __attribute__((noreturn));
+extern void status();
 extern void common_options(int ch);
 extern int gather_statistics(__u8 *ptr, int icmplen,
 			     int cc, __u16 seq, int hops,

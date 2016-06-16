@@ -565,7 +565,7 @@ void setup(socket_st *sock)
 	}
 }
 
-void main_loop(ping_func_set_st *fset, socket_st *sock, __u8 *packet, int packlen)
+void main_loop(ping_func_set_st *fset, socket_st *sock, __u8 *packet, int packlen, char *destip)
 {
 	char addrbuf[128];
 	char ans_data[4096];
@@ -706,7 +706,7 @@ void main_loop(ping_func_set_st *fset, socket_st *sock, __u8 *packet, int packle
 			 * and return to pinger. */
 		}
 	}
-	finish();
+	finish(destip);
 }
 
 int gather_statistics(__u8 *icmph, int icmplen,
@@ -714,7 +714,6 @@ int gather_statistics(__u8 *icmph, int icmplen,
 		      int csfailed, struct timeval *tv, char *from,
 		      void (*pr_reply)(__u8 *icmph, int cc))
 {
-	int dupflag = 0;
 	long triptime = 0;
 	__u8 *ptr = icmph + icmplen;
 
@@ -760,10 +759,8 @@ restamp:
 	} else if (rcvd_test(seq)) {
 		++nrepeats;
 		--nreceived;
-		dupflag = 1;
 	} else {
 		rcvd_set(seq);
-		dupflag = 0;
 	}
 	confirm = confirm_flag;
 
@@ -780,36 +777,14 @@ restamp:
 		__u8 *cp, *dp;
 
 		print_timestamp();
-		printf("%d bytes from %s:", cc, from);
 
 		if (pr_reply)
 			pr_reply(icmph, cc);
 
-		if (hops >= 0)
-			printf(" ttl=%d", hops);
-
-		if (cc < datalen+8) {
-			printf(" (truncated)\n");
-			return 1;
-		}
 		if (timing) {
-			if (triptime >= 100000)
-				printf(" time=%ld ms", triptime/1000);
-			else if (triptime >= 10000)
-				printf(" time=%ld.%01ld ms", triptime/1000,
-				       (triptime%1000)/100);
-			else if (triptime >= 1000)
-				printf(" time=%ld.%02ld ms", triptime/1000,
-				       (triptime%1000)/10);
-			else
-				printf(" time=%ld.%03ld ms", triptime/1000,
-				       triptime%1000);
+			printf(" %d", (int)triptime/1000);
 		}
-		if (dupflag)
-			printf(" (DUP!)");
-		if (csfailed)
-			printf(" (BAD CHECKSUM!)");
-
+	
 		/* check the data */
 		cp = ((unsigned char*)ptr) + sizeof(struct timeval);
 		dp = &outpack[8 + sizeof(struct timeval)];
@@ -849,31 +824,20 @@ static long llsqrt(long long a)
  * finish --
  *	Print out statistics, and give up.
  */
-void finish(void)
+void finish(char *destip)
 {
 	struct timeval tv = cur_time;
 	char *comma = "";
 
 	tvsub(&tv, &start_time);
 
-	putchar('\n');
 	fflush(stdout);
-	printf("--- %s ping statistics ---\n", hostname);
-	printf("%ld packets transmitted, ", ntransmitted);
-	printf("%ld received", nreceived);
-	if (nrepeats)
-		printf(", +%ld duplicates", nrepeats);
-	if (nchecksum)
-		printf(", +%ld corrupted", nchecksum);
-	if (nerrors)
-		printf(", +%ld errors", nerrors);
+	printf("%lu %s %s %ld %ld", (unsigned long)time(NULL), hostname, destip, ntransmitted, nreceived);
 	if (ntransmitted) {
-		printf(", %d%% packet loss",
+		printf(" %d",
 		       (int) ((((long long)(ntransmitted - nreceived)) * 100) /
 			      ntransmitted));
-		printf(", time %ldms", 1000*tv.tv_sec+tv.tv_usec/1000);
 	}
-	putchar('\n');
 
 	if (nreceived && timing) {
 		long tmdev;
@@ -882,16 +846,11 @@ void finish(void)
 		tsum2 /= nreceived + nrepeats;
 		tmdev = llsqrt(tsum2 - tsum * tsum);
 
-		printf("rtt min/avg/max/mdev = %ld.%03ld/%lu.%03ld/%ld.%03ld/%ld.%03ld ms",
-		       (long)tmin/1000, (long)tmin%1000,
-		       (unsigned long)(tsum/1000), (long)(tsum%1000),
-		       (long)tmax/1000, (long)tmax%1000,
-		       (long)tmdev/1000, (long)tmdev%1000
-		       );
+		printf(" %ld %ld %ld %ld", (long)tmin/1000, (long)(tsum/1000), (long)tmax/1000, (long)tmdev/1000);
+
 		comma = ", ";
 	}
 	if (pipesize > 1) {
-		printf("%spipe %d", comma, pipesize);
 		comma = ", ";
 	}
 	if (nreceived && (!interval || (options&(F_FLOOD|F_ADAPTIVE))) && ntransmitted > 1) {

@@ -1041,7 +1041,7 @@ int ping6_run(int argc, char **argv, struct addrinfo *ai, struct socket_st *sock
 #endif
 	}
 
-	printf("PING %s(%s) ", hostname, pr_addr(&whereto, sizeof whereto));
+	
 	if (flowlabel)
 		printf(", flow 0x%05x, ", (unsigned)ntohl(flowlabel));
 	if (device || (options&F_STRICTSOURCE)) {
@@ -1051,13 +1051,12 @@ int ping6_run(int argc, char **argv, struct addrinfo *ai, struct socket_st *sock
 		printf("from %s %s: ", pr_addr(&source6, sizeof source6), device ? : "");
 		options = saved_options;
 	}
-	printf("%d data bytes\n", datalen);
 
 	setup(sock);
 
 	drop_capabilities();
 
-	main_loop(&ping6_func_set, sock, packet, packlen);
+	main_loop(&ping6_func_set, sock, packet, packlen, target);
 }
 
 int ping6_receive_error_msg(socket_st *sock)

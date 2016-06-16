@@ -821,14 +821,9 @@ int ping4_run(int argc, char **argv, struct addrinfo *ai, socket_st *sock)
 		exit(2);
 	}
 
-	printf("PING %s (%s) ", hostname, inet_ntoa(whereto.sin_addr));
-	if (device || (options&F_STRICTSOURCE))
-		printf("from %s %s: ", inet_ntoa(source.sin_addr), device ?: "");
-	printf("%d(%d) bytes of data.\n", datalen, datalen+8+optlen+20);
-
 	setup(sock);
-
-	main_loop(&ping4_func_set, sock, packet, packlen);
+	
+	main_loop(&ping4_func_set, sock, packet, packlen, inet_ntoa(whereto.sin_addr));
 }
 
 
@@ -882,8 +877,6 @@ int ping4_receive_error_msg(socket_st *sock)
 			fprintf(stderr, "ping: local error: Message too long, mtu=%u\n", e->ee_info);
 		nerrors++;
 	} else if (e->ee_origin == SO_EE_ORIGIN_ICMP) {
-		struct sockaddr_in *sin = (struct sockaddr_in*)(e+1);
-
 		if (res < sizeof(icmph) ||
 		    target.sin_addr.s_addr != whereto.sin_addr.s_addr ||
 		    icmph.type != ICMP_ECHO ||
@@ -914,7 +907,7 @@ int ping4_receive_error_msg(socket_st *sock)
 			write_stdout("\bE", 2);
 		} else {
 			print_timestamp();
-			printf("From %s icmp_seq=%u ", pr_addr(sin, sizeof *sin), ntohs(icmph.un.echo.sequence));
+			printf("%u", ntohs(icmph.un.echo.sequence));
 			pr_icmph(e->ee_type, e->ee_code, e->ee_info, NULL);
 			fflush(stdout);
 		}
@@ -986,7 +979,7 @@ static
 void pr_echo_reply(__u8 *_icp, int len)
 {
 	struct icmphdr *icp = (struct icmphdr *)_icp;
-	printf(" icmp_seq=%u", ntohs(icp->un.echo.sequence));
+	printf("%u", ntohs(icp->un.echo.sequence));
 }
 
 int
@@ -1083,9 +1076,7 @@ ping4_parse_reply(struct socket_st *sock, struct msghdr *msg, int cc, void *addr
 				if (options & (F_QUIET | F_FLOOD))
 					return 1;
 				print_timestamp();
-				printf("From %s: icmp_seq=%u ",
-				       pr_addr(from, sizeof *from),
-				       ntohs(icp1->un.echo.sequence));
+				printf("%u", ntohs(icp1->un.echo.sequence));
 				if (csfailed)
 					printf("(BAD CHECKSUM)");
 				pr_icmph(icp->type, icp->code, ntohl(icp->un.gateway), icp);

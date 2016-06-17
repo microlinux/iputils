@@ -1,0 +1,24 @@
+https://github.com/microlinux/iputils/tree/mechanized
+
+Modifcations to ping performed with a dull chainsaw . . . they work for me.
+
+I'd spout some licensing BS, but IANAL. Do what you will.
+
+ping -c10 -i.2 -W1 -q yahoo.com
+1466055205 yahoo.com 206.190.36.45 10 10 0 47 47 48 0
+(time finished, target, resolved ip, sent, recvd, pctloss, min, avg, max, mdev)
+
+ping -c10 -i.2 -W1 yahoo.com
+1 28
+2 28
+3 28
+4 28
+5 29
+6 28
+7 28
+8 28
+9 27
+10 28
+1466055264 yahoo.com 98.139.183.24 10 10 0 27 28 29 0
+
+cat list-of-targets.txt | xargs -n1 -I^ -P100 ping -c10 -i.2 -W1 -q ^ 2> /dev/null

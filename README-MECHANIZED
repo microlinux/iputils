@@ -22,3 +22,5 @@ ping -c10 -i.2 -W1 yahoo.com
 1466055264 yahoo.com 98.139.183.24 10 10 0 27 28 29 0
 
 cat list-of-targets.txt | xargs -n1 -I^ -P100 ping -c10 -i.2 -W1 -q ^ 2> /dev/null
+
+sudo setcap cap_net_raw+p ./ping after build to allow non-root users
